@@ -4,13 +4,20 @@ import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit } from "lucide-react";
+import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { callGemini } from "@/lib/ai";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { EditTaskModal } from "./EditTaskModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskCardProps {
   task: Doc<"tasks">;
@@ -21,6 +28,7 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
   const removeTask = useMutation(api.tasks.remove);
   const createTask = useMutation(api.tasks.create);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,86 +99,106 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
   };
 
   return (
-    <motion.div
-      layoutId={task._id}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ scale: 1.02 }}
-      whileDrag={{ scale: 1.05, rotate: 2, zIndex: 50 }}
-      draggable
-      onDragStart={() => onDragStart(task._id)}
-      className="cursor-grab active:cursor-grabbing"
-    >
-      <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-transparent data-[status=blocked]:border-l-red-500 data-[status=done]:border-l-green-500 data-[status=in_progress]:border-l-blue-500" data-status={task.status}>
-        <CardHeader className="p-3 pb-0 space-y-0">
-          <div className="flex justify-between items-start gap-2">
-            <CardTitle className="text-sm font-medium leading-tight">
-              {task.title}
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 -mr-1 text-muted-foreground hover:text-destructive"
-              onClick={handleDelete}
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-3 pt-2">
-          {task.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-              {task.description}
-            </p>
-          )}
-          
-          {task.status === "blocked" && task.blockedReason && (
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-2 rounded-md mt-2">
-              <div className="flex items-start gap-1.5">
-                <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                <span>{task.blockedReason}</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full mt-2 h-6 text-[10px] bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/30"
-                onClick={handleAiUnblock}
-                disabled={isAiLoading}
-              >
-                {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <BrainCircuit className="w-3 h-3 mr-1"/>}
-                Get Unstuck
-              </Button>
+    <>
+      <motion.div
+        layoutId={task._id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        whileHover={{ scale: 1.02 }}
+        whileDrag={{ scale: 1.05, rotate: 2, zIndex: 50 }}
+        draggable
+        onDragStart={() => onDragStart(task._id)}
+        className="cursor-grab active:cursor-grabbing"
+      >
+        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-transparent data-[status=blocked]:border-l-red-500 data-[status=done]:border-l-green-500 data-[status=in_progress]:border-l-blue-500" data-status={task.status}>
+          <CardHeader className="p-3 pb-0 space-y-0">
+            <div className="flex justify-between items-start gap-2">
+              <CardTitle className="text-sm font-medium leading-tight">
+                {task.title}
+              </CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 -mr-1 text-muted-foreground hover:text-foreground"
+                  >
+                    <MoreVertical className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                    <Pencil className="w-3 h-3 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="w-3 h-3 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-
-          {task.status === "todo" && (
-             <Button 
-               variant="ghost" 
-               size="sm" 
-               className="w-full mt-2 h-6 text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300"
-               onClick={handleAiBreakdown}
-               disabled={isAiLoading}
-             >
-               {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Sparkles className="w-3 h-3 mr-1"/>}
-               AI Breakdown
-             </Button>
-          )}
-
-          <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDistanceToNow(task._creationTime, { addSuffix: true })}
-            </div>
-            {task.status === "done" && (
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                Done
-              </Badge>
+          </CardHeader>
+          <CardContent className="p-3 pt-2">
+            {task.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                {task.description}
+              </p>
             )}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+            
+            {task.status === "blocked" && task.blockedReason && (
+              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-2 rounded-md mt-2">
+                <div className="flex items-start gap-1.5">
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span>{task.blockedReason}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full mt-2 h-6 text-[10px] bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/30"
+                  onClick={handleAiUnblock}
+                  disabled={isAiLoading}
+                >
+                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <BrainCircuit className="w-3 h-3 mr-1"/>}
+                  Get Unstuck
+                </Button>
+              </div>
+            )}
+
+            {task.status === "todo" && (
+               <Button 
+                 variant="ghost" 
+                 size="sm" 
+                 className="w-full mt-2 h-6 text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300"
+                 onClick={handleAiBreakdown}
+                 disabled={isAiLoading}
+               >
+                 {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Sparkles className="w-3 h-3 mr-1"/>}
+                 AI Breakdown
+               </Button>
+            )}
+
+            <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDistanceToNow(task._creationTime, { addSuffix: true })}
+              </div>
+              {task.status === "done" && (
+                <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Done
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+      <EditTaskModal 
+        task={task} 
+        open={isEditOpen} 
+        onOpenChange={setIsEditOpen} 
+      />
+    </>
   );
 }

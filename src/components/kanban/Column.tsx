@@ -2,6 +2,7 @@ import { Doc, Id } from "@/convex/_generated/dataModel";
 import { TaskCard } from "./TaskCard";
 import { TaskStatus } from "./Board";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface KanbanColumnProps {
   id: TaskStatus;
@@ -16,21 +17,24 @@ export function KanbanColumn({ id, label, color, tasks, onDragStart, onDrop }: K
   return (
     <div
       className={cn(
-        "flex-1 flex flex-col rounded-xl border bg-card/50 backdrop-blur-sm transition-colors",
+        "flex-1 flex flex-col rounded-xl border bg-card/50 backdrop-blur-sm transition-all duration-300",
         id === "in_progress" && "border-blue-200 dark:border-blue-900",
         id === "blocked" && "border-red-200 dark:border-red-900",
-        id === "done" && "border-green-200 dark:border-green-900"
+        id === "done" && "border-green-200 dark:border-green-900 bg-green-50/30 dark:bg-green-900/10"
       )}
       onDragOver={(e) => {
         e.preventDefault();
         e.currentTarget.classList.add("bg-accent/50");
+        if (id === "done") e.currentTarget.classList.add("scale-[1.01]", "shadow-lg", "border-green-400");
       }}
       onDragLeave={(e) => {
         e.currentTarget.classList.remove("bg-accent/50");
+        if (id === "done") e.currentTarget.classList.remove("scale-[1.01]", "shadow-lg", "border-green-400");
       }}
       onDrop={(e) => {
         e.preventDefault();
         e.currentTarget.classList.remove("bg-accent/50");
+        if (id === "done") e.currentTarget.classList.remove("scale-[1.01]", "shadow-lg", "border-green-400");
         onDrop();
       }}
     >
@@ -40,7 +44,7 @@ export function KanbanColumn({ id, label, color, tasks, onDragStart, onDrop }: K
             id === "todo" && "bg-slate-400",
             id === "in_progress" && "bg-blue-500",
             id === "blocked" && "bg-red-500",
-            id === "done" && "bg-green-500"
+            id === "done" && "bg-green-500 animate-pulse"
           )} />
           <h3 className="font-semibold tracking-tight text-sm uppercase text-muted-foreground">
             {label}
@@ -57,7 +61,7 @@ export function KanbanColumn({ id, label, color, tasks, onDragStart, onDrop }: K
         ))}
         {tasks.length === 0 && (
           <div className="h-24 border-2 border-dashed border-muted rounded-lg flex items-center justify-center text-muted-foreground text-xs">
-            Drop here
+            {id === "done" ? "Drag completed tasks here!" : "Drop here"}
           </div>
         )}
       </div>
