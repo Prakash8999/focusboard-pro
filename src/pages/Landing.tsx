@@ -3,16 +3,19 @@ import { motion } from "framer-motion";
 import { ArrowRight, LayoutDashboard, CheckCircle2, Zap, Shield, Star, Users, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { AuthModal } from "@/components/AuthModal";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleGetStarted = () => {
     if (isAuthenticated) {
       navigate("/dashboard");
     } else {
-      navigate("/auth");
+      setIsAuthModalOpen(true);
     }
   };
 
@@ -42,7 +45,7 @@ export default function Landing() {
           <span className="font-bold text-lg tracking-tight">FocusBoard</span>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate("/auth")} className="hidden sm:flex">
+          <Button variant="ghost" onClick={() => setIsAuthModalOpen(true)} className="hidden sm:flex">
             Sign In
           </Button>
           <Button onClick={handleGetStarted} className="rounded-full px-6 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
@@ -86,7 +89,7 @@ export default function Landing() {
                 <Button size="lg" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105" onClick={handleGetStarted}>
                   Start for Free <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
-                <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto hover:bg-secondary/50" onClick={() => navigate("/auth")}>
+                <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full w-full sm:w-auto hover:bg-secondary/50" onClick={() => setIsAuthModalOpen(true)}>
                   View Demo
                 </Button>
               </motion.div>
@@ -209,6 +212,8 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+      
+      <AuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
     </div>
   );
 }
