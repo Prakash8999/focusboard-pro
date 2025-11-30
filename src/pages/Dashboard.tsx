@@ -27,28 +27,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b bg-card px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      <header className="border-b bg-card px-4 md:px-6 py-3 md:py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="bg-primary/10 p-2 rounded-lg">
-            <LayoutDashboard className="w-6 h-6 text-primary" />
+            <LayoutDashboard className="w-5 h-5 md:w-6 md:h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">FocusBoard</h1>
-            <p className="text-xs text-muted-foreground">Personal Kanban</p>
+            <h1 className="text-lg md:text-xl font-bold tracking-tight">FocusBoard</h1>
+            <p className="text-[10px] md:text-xs text-muted-foreground hidden md:block">Personal Kanban</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <Button onClick={() => setIsNewTaskOpen(true)} className="gap-2">
+        <div className="flex items-center gap-2 md:gap-3">
+          <Button onClick={() => setIsNewTaskOpen(true)} className="gap-2 h-9 md:h-10 text-xs md:text-sm">
             <Plus className="w-4 h-4" />
-            New Task
+            <span className="hidden md:inline">New Task</span>
+            <span className="md:hidden">New</span>
           </Button>
           {user && <ProfileModal user={user} />}
         </div>
       </header>
 
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-hidden relative">
         <KanbanBoard tasks={tasks} />
       </main>
 

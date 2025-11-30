@@ -95,18 +95,19 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
   ];
 
   return (
-    <div className="h-full p-6 overflow-x-auto">
-      <div className="flex h-full gap-6 min-w-[1000px]">
+    <div className="h-full p-4 md:p-6 overflow-x-auto overflow-y-hidden">
+      <div className="flex h-full gap-4 md:gap-6 min-w-full w-max md:w-full snap-x snap-mandatory md:snap-none">
         {columns.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            id={col.id}
-            label={col.label}
-            color={col.color}
-            tasks={tasks.filter((t) => t.status === col.id)}
-            onDragStart={handleDragStart}
-            onDrop={() => handleDrop(col.id)}
-          />
+          <div key={col.id} className="snap-center min-w-[85vw] md:min-w-0 md:flex-1 h-full">
+            <KanbanColumn
+              id={col.id}
+              label={col.label}
+              color={col.color}
+              tasks={tasks.filter((t) => t.status === col.id)}
+              onDragStart={handleDragStart}
+              onDrop={() => handleDrop(col.id)}
+            />
+          </div>
         ))}
       </div>
       <BlockTaskModal 
