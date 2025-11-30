@@ -1,0 +1,11 @@
+// src/convex/auth/emailOtp.ts
+// ...
+await axios.post(
+  "https://email.vly.ai/send_otp",
+  {
+    to: email,
+    otp: token,
+    appName: process.env.VLY_APP_NAME || "a vly.ai application",
+  },
+  // ...
+);
