@@ -5,18 +5,37 @@ import { Id, Doc } from "@/convex/_generated/dataModel";
 import { KanbanColumn } from "./Column";
 import { toast } from "sonner";
 import { BlockTaskModal } from "./BlockTaskModal";
+import { isSameDay } from "date-fns";
 
 interface KanbanBoardProps {
   tasks: Doc<"tasks">[];
+  selectedDate: Date;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
-export function KanbanBoard({ tasks }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
   const updateStatus = useMutation(api.tasks.updateStatus);
   const [draggedTaskId, setDraggedTaskId] = useState<Id<"tasks"> | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [pendingBlockTaskId, setPendingBlockTaskId] = useState<Id<"tasks"> | null>(null);
+
+  // Filter tasks based on selected date
+  // Active tasks (todo, in_progress, blocked) are only shown if viewing Today (Carry Forward logic)
+  // Done tasks are only shown if completed on the selected date
+  const filteredTasks = tasks.filter((task) => {
+    const isToday = isSameDay(selectedDate, new Date());
+    
+    if (task.status === "done") {
+      // If task is done, check if it was completed on the selected date
+      // If completedAt is missing (legacy), don't show in date filtered views
+      return task.completedAt ? isSameDay(new Date(task.completedAt), selectedDate) : false;
+    } else {
+      // If task is active, it "carries forward" to Today.
+      // So it is only visible if we are viewing Today.
+      return isToday;
+    }
+  });
 
   const handleDragStart = (taskId: Id<"tasks">) => {
     setDraggedTaskId(taskId);
@@ -103,7 +122,7 @@ export function KanbanBoard({ tasks }: KanbanBoardProps) {
               id={col.id}
               label={col.label}
               color={col.color}
-              tasks={tasks.filter((t) => t.status === col.id)}
+              tasks={filteredTasks.filter((t) => t.status === col.id)}
               onDragStart={handleDragStart}
               onDrop={() => handleDrop(col.id)}
             />
