@@ -23,17 +23,20 @@ This project is set up already and running on a cloud environment, as well as a 
 
 ## Environment Variables
 
-The project is set up with project specific CONVEX_DEPLOYMENT and VITE_CONVEX_URL environment variables on the client side.
+This project uses two separate sets of environment variables:
 
-The convex server has a separate set of environment variables that are accessible by the convex backend.
+### 1. Frontend Variables (Client-side)
+These are stored in a `.env.local` file in your project root. They are exposed to the browser.
+- `VITE_CONVEX_URL`: The URL of your Convex deployment.
+- `CONVEX_DEPLOYMENT`: The deployment name.
 
-Currently, these variables include auth-specific keys: JWKS, JWT_PRIVATE_KEY, and SITE_URL.
+### 2. Backend Variables (Server-side)
+These are managed in the **Convex Dashboard** under **Settings -> Environment Variables**. They are secure and never exposed to the client.
+- `PPLX_API_KEY`: **Required** for AI features (Perplexity Sonar).
+- `CONVEX_SITE_URL`: Required for Authentication (e.g., `https://your-deployment-name.convex.site`).
+- `JWKS` & `JWT_PRIVATE_KEY`: Automatically managed by Convex Auth, but can be overridden if needed.
 
-### AI Configuration
-
-To enable the AI features (Task Breakdown, Unblocking Tips, Description Generation), you must set the following environment variable in the **Frontend** API Keys settings:
-
-- `VITE_GEMINI_API_KEY`: Your Google Gemini API Key. You can obtain one from [Google AI Studio](https://aistudio.google.com/app/apikey).
+> **Note:** You do not create a `.env` file for backend variables. You must set them in the Convex Dashboard.
 
 
 # Using Authentication (Important!)
