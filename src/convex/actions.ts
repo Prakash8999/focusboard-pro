@@ -20,11 +20,12 @@ export const sendOtpEmail = action({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to send OTP: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Status ${response.status}: ${errorText}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send OTP email:", error);
-      throw new Error("Failed to send OTP email");
+      throw new Error(`Failed to send OTP email: ${error.message}`);
     }
   },
 });
