@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
 import {
   Dialog,
   DialogContent,
@@ -11,29 +8,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { LogOut, User, Mail, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 interface ProfileModalProps {
-  user: Doc<"users">;
+  user: any;
 }
 
 export function ProfileModal({ user }: ProfileModalProps) {
   const { signOut } = useAuth();
-  const updateUser = useMutation(api.users.update);
   const [open, setOpen] = useState(false);
-
-  const handleOtpToggle = async (checked: boolean) => {
-    try {
-      await updateUser({ otpEnabled: checked });
-      toast.success(`OTP on login ${checked ? "enabled" : "disabled"}`);
-    } catch (error) {
-      toast.error("Failed to update settings");
-    }
-  };
 
   const getInitials = (name?: string, email?: string) => {
     if (name) {
@@ -77,24 +61,6 @@ export function ProfileModal({ user }: ProfileModalProps) {
             <div className="grid gap-1">
               <h3 className="font-medium leading-none">{user.name || "User"}</h3>
               <p className="text-sm text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between space-x-2 rounded-lg border p-4">
-              <div className="flex items-center space-x-4">
-                <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-                <div className="space-y-0.5">
-                  <Label className="text-base">Two-factor Authentication</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Require OTP when logging in
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={user.otpEnabled === true}
-                onCheckedChange={handleOtpToggle}
-              />
             </div>
           </div>
 

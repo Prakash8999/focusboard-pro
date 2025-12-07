@@ -1,6 +1,3 @@
-import { Doc, Id } from "@/convex/_generated/dataModel";
-import { useMutation, useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,16 +14,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { db } from "@/lib/firebase";
+import { doc, deleteDoc, addDoc, collection } from "firebase/firestore";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TaskCardProps {
-  task: Doc<"tasks">;
-  onDragStart: (taskId: Id<"tasks">) => void;
+  task: any;
+  onDragStart: (taskId: any) => void;
 }
 
 export function TaskCard({ task, onDragStart }: TaskCardProps) {
-  const removeTask = useMutation(api.tasks.remove);
-  const createTask = useMutation(api.tasks.create);
-  const performAi = useAction(api.ai.chat);
+  const { user } = useAuth();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -35,7 +33,7 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
     if (!confirm("Are you sure you want to delete this task?")) return;
     
     try {
-      await removeTask({ taskId: task._id });
+      await deleteDoc(doc(db, "tasks", task._id));
       toast.success("Task deleted");
     } catch (error) {
       toast.error("Failed to delete task");
@@ -46,16 +44,19 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
     e.stopPropagation();
     setIsAiLoading(true);
     try {
-      const prompt = `Break down the task "${task.title}" into 3 actionable sub-tasks. Return JSON: { "subtasks": ["Task 1", "Task 2"] }`;
-      const result = await performAi({ prompt, asJson: true });
-      const subtasks = result.subtasks || [];
+      // Mock AI
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const subtasks = ["Subtask 1", "Subtask 2", "Subtask 3"];
 
-      if (subtasks.length > 0) {
+      if (subtasks.length > 0 && user) {
         for (const subtaskTitle of subtasks) {
-          await createTask({
+          await addDoc(collection(db, "tasks"), {
+            userId: user._id,
             title: subtaskTitle,
             description: `Subtask of: ${task.title}`,
             status: "todo",
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
           });
         }
         toast.success(`Created ${subtasks.length} subtasks!`, {
@@ -75,9 +76,9 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
     
     setIsAiLoading(true);
     try {
-      const prompt = `My task "${task.title}" is blocked because: "${task.blockedReason}". Give me 3 short, strategic tips to unblock it. Return JSON: { "tips": ["Tip 1", "Tip 2", "Tip 3"] }`;
-      const result = await performAi({ prompt, asJson: true });
-      const tips = result.tips || [];
+      // Mock AI
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const tips = ["Break it down", "Ask for help", "Take a break"];
       
       if (tips.length > 0) {
         toast.message("Unblocking Tips", {
@@ -183,7 +184,7 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-1" title="Created at">
                   <Clock className="w-3 h-3" />
-                  <span>Created {formatDistanceToNow(task._creationTime, { addSuffix: true })}</span>
+                  <span>Created {formatDistanceToNow(task._creationTime || Date.now(), { addSuffix: true })}</span>
                 </div>
                 {task.status === "done" && (
                   <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">

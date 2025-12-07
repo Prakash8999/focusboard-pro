@@ -1,43 +1,35 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id, Doc } from "@/convex/_generated/dataModel";
 import { KanbanColumn } from "./Column";
 import { toast } from "sonner";
 import { BlockTaskModal } from "./BlockTaskModal";
 import { isSameDay } from "date-fns";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 interface KanbanBoardProps {
-  tasks: Doc<"tasks">[];
+  tasks: any[];
   selectedDate: Date;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
 export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
-  const updateStatus = useMutation(api.tasks.updateStatus);
-  const [draggedTaskId, setDraggedTaskId] = useState<Id<"tasks"> | null>(null);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
-  const [pendingBlockTaskId, setPendingBlockTaskId] = useState<Id<"tasks"> | null>(null);
+  const [pendingBlockTaskId, setPendingBlockTaskId] = useState<string | null>(null);
 
   // Filter tasks based on selected date
-  // Active tasks (todo, in_progress, blocked) are only shown if viewing Today (Carry Forward logic)
-  // Done tasks are only shown if completed on the selected date
   const filteredTasks = tasks.filter((task) => {
     const isToday = isSameDay(selectedDate, new Date());
     
     if (task.status === "done") {
-      // If task is done, check if it was completed on the selected date
-      // If completedAt is missing (legacy), don't show in date filtered views
       return task.completedAt ? isSameDay(new Date(task.completedAt), selectedDate) : false;
     } else {
-      // If task is active, it "carries forward" to Today.
-      // So it is only visible if we are viewing Today.
       return isToday;
     }
   });
 
-  const handleDragStart = (taskId: Id<"tasks">) => {
+  const handleDragStart = (taskId: string) => {
     setDraggedTaskId(taskId);
   };
 
@@ -52,7 +44,6 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
       return;
     }
 
-    // Check limits locally for immediate feedback (backend also checks)
     if (targetStatus === "in_progress") {
       const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
       if (inProgressCount >= 2) {
@@ -72,7 +63,13 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
     }
 
     try {
-      await updateStatus({ taskId: draggedTaskId, status: targetStatus });
+      const taskRef = doc(db, "tasks", draggedTaskId);
+      const updates: any = { status: targetStatus };
+      if (targetStatus === "done") {
+        updates.completedAt = Date.now();
+      }
+      await updateDoc(taskRef, updates);
+      
       if (targetStatus === "done") {
         toast.success("Task Completed!", {
           description: "Great job! Keep up the momentum.",
@@ -89,10 +86,10 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
   const handleBlockConfirm = async (reason: string) => {
     if (!pendingBlockTaskId) return;
     try {
-      await updateStatus({ 
-        taskId: pendingBlockTaskId, 
-        status: "blocked", 
-        blockedReason: reason 
+      const taskRef = doc(db, "tasks", pendingBlockTaskId);
+      await updateDoc(taskRef, {
+        status: "blocked",
+        blockedReason: reason
       });
       toast.info("Task Blocked", {
         description: "Don't worry, you'll unblock it soon.",

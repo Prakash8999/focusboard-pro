@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useMutation, useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Sparkles } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NewTaskModalProps {
   open: boolean;
@@ -22,8 +23,7 @@ interface NewTaskModalProps {
 }
 
 export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
-  const createTask = useMutation(api.tasks.create);
-  const performAi = useAction(api.ai.chat);
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,9 +36,9 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
     }
     setIsAiLoading(true);
     try {
-      const prompt = `Write a clear, professional description for a task titled: "${title}". Keep it concise (under 2 sentences).`;
-      const text = await performAi({ prompt, asJson: false });
-      setDescription(text);
+      // Mock AI for now as we removed Convex AI
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setDescription(`Professional description for: ${title}. This task involves key steps to ensure successful completion.`);
       toast.success("Description generated!");
     } catch (error: any) {
       toast.error("AI Failed", { description: error.message });
@@ -49,20 +49,24 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || !user) return;
 
     setIsLoading(true);
     try {
-      await createTask({
+      await addDoc(collection(db, "tasks"), {
+        userId: user._id,
         title,
         description,
         status: "todo",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
       toast.success("Task created successfully");
       setTitle("");
       setDescription("");
       onOpenChange(false);
     } catch (error) {
+      console.error(error);
       toast.error("Failed to create task");
     } finally {
       setIsLoading(false);

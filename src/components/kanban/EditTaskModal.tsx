@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Doc } from "@/convex/_generated/dataModel";
 import {
   Dialog,
   DialogContent,
@@ -15,15 +12,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 interface EditTaskModalProps {
-  task: Doc<"tasks">;
+  task: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function EditTaskModal({ task, open, onOpenChange }: EditTaskModalProps) {
-  const updateTask = useMutation(api.tasks.update);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +32,11 @@ export function EditTaskModal({ task, open, onOpenChange }: EditTaskModalProps) 
 
     setIsLoading(true);
     try {
-      await updateTask({
-        taskId: task._id,
+      const taskRef = doc(db, "tasks", task._id);
+      await updateDoc(taskRef, {
         title,
         description,
+        updatedAt: Date.now()
       });
       toast.success("Task updated");
       onOpenChange(false);

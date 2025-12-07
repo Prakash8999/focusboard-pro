@@ -1,28 +1,43 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { useState, useEffect } from "react";
 import { KanbanBoard } from "@/components/kanban/Board";
 import { Button } from "@/components/ui/button";
-import { Plus, LogOut, LayoutDashboard, ShieldAlert, Sparkles, CalendarIcon } from "lucide-react";
+import { Plus, LayoutDashboard, CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { NewTaskModal } from "@/components/kanban/NewTaskModal";
 import { ProfileModal } from "@/components/ProfileModal";
-import { toast } from "sonner";
-import { AuthModal } from "@/components/AuthModal";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot, QuerySnapshot, DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 
 export default function Dashboard() {
-  const { signOut, user } = useAuth();
-  const tasks = useQuery(api.tasks.list);
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  if (tasks === undefined || user === undefined) {
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const q = query(collection(db, "tasks"), where("userId", "==", user._id));
+    const unsubscribe = onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+      const tasksData = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
+        ...doc.data(),
+        _id: doc.id,
+        // Ensure compatibility with existing code expecting numbers/dates
+        _creationTime: doc.data().createdAt || Date.now(), 
+      }));
+      setTasks(tasksData);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user?._id]);
+
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -33,33 +48,6 @@ export default function Dashboard() {
             </div>
           </div>
           <p className="text-muted-foreground text-sm animate-pulse">Loading your workspace...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (user === null) return null;
-
-  // Block access if not verified
-  if (!user.emailVerificationTime) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] opacity-50" />
-        <div className="max-w-md w-full text-center space-y-6 bg-card/50 backdrop-blur-xl p-8 rounded-3xl border shadow-2xl">
-          <div className="bg-yellow-500/10 p-4 rounded-full w-20 h-20 mx-auto flex items-center justify-center ring-8 ring-yellow-500/5">
-            <ShieldAlert className="w-10 h-10 text-yellow-600" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Verification Required</h1>
-            <p className="text-muted-foreground">
-              Please verify your email address to access your dashboard.
-            </p>
-          </div>
-          <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => signOut()} className="rounded-full px-6">Sign Out</Button>
-            <Button onClick={() => setIsAuthModalOpen(true)} className="rounded-full px-6">Enter Code</Button>
-          </div>
-          <AuthModal open={isAuthModalOpen} onOpenChange={setIsAuthModalOpen} />
         </div>
       </div>
     );
@@ -116,7 +104,7 @@ export default function Dashboard() {
             <span className="md:hidden">New</span>
           </Button>
           <div className="h-6 w-px bg-border mx-1" />
-          {user && <ProfileModal user={user} />}
+          {user && <ProfileModal user={user as any} />}
         </div>
       </header>
 
