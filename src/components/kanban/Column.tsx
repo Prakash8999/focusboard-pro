@@ -3,6 +3,7 @@ import { TaskCard } from "./TaskCard";
 import { TaskStatus } from "./Board";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface KanbanColumnProps {
   id: TaskStatus;
@@ -11,9 +12,20 @@ interface KanbanColumnProps {
   tasks: Doc<"tasks">[];
   onDragStart: (taskId: Id<"tasks">) => void;
   onDrop: () => void;
+  selectedTaskIds: Set<string>;
+  onToggleSelection: (taskId: string) => void;
 }
 
-export function KanbanColumn({ id, label, color, tasks, onDragStart, onDrop }: KanbanColumnProps) {
+export function KanbanColumn({ 
+  id, 
+  label, 
+  color, 
+  tasks, 
+  onDragStart, 
+  onDrop,
+  selectedTaskIds,
+  onToggleSelection
+}: KanbanColumnProps) {
   return (
     <div
       className={cn(
@@ -66,7 +78,13 @@ export function KanbanColumn({ id, label, color, tasks, onDragStart, onDrop }: K
       
       <div className="flex-1 min-h-0 p-2 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/10 hover:scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
         {tasks.map((task) => (
-          <TaskCard key={task._id} task={task} onDragStart={onDragStart} />
+          <TaskCard 
+            key={task._id} 
+            task={task} 
+            onDragStart={onDragStart} 
+            isSelected={selectedTaskIds.has(task._id)}
+            onToggleSelection={() => onToggleSelection(task._id)}
+          />
         ))}
         {tasks.length === 0 && (
           <div className="h-full min-h-[100px] flex flex-col items-center justify-center text-muted-foreground/40 gap-2">

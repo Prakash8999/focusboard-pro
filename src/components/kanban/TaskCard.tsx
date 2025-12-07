@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -17,13 +18,16 @@ import {
 import { db } from "@/lib/firebase";
 import { doc, deleteDoc, addDoc, collection } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
   task: any;
   onDragStart: (taskId: any) => void;
+  isSelected: boolean;
+  onToggleSelection: () => void;
 }
 
-export function TaskCard({ task, onDragStart }: TaskCardProps) {
+export function TaskCard({ task, onDragStart, isSelected, onToggleSelection }: TaskCardProps) {
   const { user } = useAuth();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -110,11 +114,35 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
         whileDrag={{ scale: 1.05, rotate: 2, zIndex: 50 }}
         draggable
         onDragStart={() => onDragStart(task._id)}
-        className="cursor-grab active:cursor-grabbing"
+        className="cursor-grab active:cursor-grabbing group relative"
       >
-        <Card className="shadow-sm hover:shadow-md transition-shadow border-l-4 border-l-transparent data-[status=blocked]:border-l-red-500 data-[status=done]:border-l-green-500 data-[status=in_progress]:border-l-blue-500" data-status={task.status}>
+        <div className={cn(
+          "absolute top-2 left-2 z-20 transition-opacity duration-200",
+          isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          <Checkbox 
+            checked={isSelected}
+            onCheckedChange={() => onToggleSelection()}
+            className="bg-background/80 backdrop-blur-sm border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+
+        <Card 
+          className={cn(
+            "shadow-sm hover:shadow-md transition-all border-l-4 border-l-transparent data-[status=blocked]:border-l-red-500 data-[status=done]:border-l-green-500 data-[status=in_progress]:border-l-blue-500",
+            isSelected && "ring-2 ring-primary border-primary/50"
+          )} 
+          data-status={task.status}
+          onClick={(e) => {
+            // Allow clicking card to select if in selection mode (optional, but good UX)
+            if (e.ctrlKey || e.metaKey) {
+              onToggleSelection();
+            }
+          }}
+        >
           <CardHeader className="p-3 pb-0 space-y-0">
-            <div className="flex justify-between items-start gap-2">
+            <div className="flex justify-between items-start gap-2 pl-6">
               <CardTitle className="text-sm font-medium leading-tight">
                 {task.title}
               </CardTitle>
@@ -184,7 +212,7 @@ export function TaskCard({ task, onDragStart }: TaskCardProps) {
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
                 <div className="flex items-center gap-1" title="Created at">
                   <Clock className="w-3 h-3" />
-                  <span>Created {formatDistanceToNow(task._creationTime || Date.now(), { addSuffix: true })}</span>
+                  <span>{formatDistanceToNow(task._creationTime || Date.now(), { addSuffix: true })}</span>
                 </div>
                 {task.status === "done" && (
                   <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100">
