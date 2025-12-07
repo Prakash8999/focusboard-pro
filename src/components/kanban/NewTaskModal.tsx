@@ -43,8 +43,8 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
       toast.success("Description generated!");
     } catch (error: any) {
       if (error.message.includes("Missing API Key")) {
-        toast.error("AI Configuration Missing", { 
-          description: "Please add VITE_PPLX_API_KEY to your .env.local file to use AI features." 
+        toast.error("AI Configuration Missing", {
+          description: "Please add VITE_PPLX_API_KEY to your .env.local file to use AI features."
         });
       } else {
         toast.error("AI Failed", { description: error.message });
@@ -62,42 +62,42 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
     console.log("Improving description:", description);
     setIsAiLoading(true);
     try {
-      const systemPrompt = "You are a professional editor. Rewrite the input text to improve grammar, clarity, and professional tone. Return ONLY the improved text. Do NOT include any conversational filler, prefixes (like 'Improved:'), or suffixes. Do NOT repeat the input if it is already correct, just return the corrected version. Do NOT wrap in quotes.";
+      const systemPrompt = "You are a grammar-only editor. Your ONLY job is to correct grammar, spelling, and basic phrasing while keeping the original meaning and length. Do NOT add facts, explanations, interpretations, or new information of any kind.Do NOT expand the text.Do NOT change meaning.Do NOT make it more formal unless required for grammar.Return ONLY the corrected text with no commentary, no prefix, and no suffix.If the input is already correct, return it unchanged.";
       const result = await callAi(description, systemPrompt);
-      
+
       console.log("Raw AI result:", result);
 
       // Clean up the result just in case the AI is chatty
       let cleanedResult = result.trim();
-      
+
       // Remove common prefixes
       cleanedResult = cleanedResult.replace(/^Here is the improved text:[\s\n]*/i, "");
       cleanedResult = cleanedResult.replace(/^\(Improved\)[\s\n]*/i, "");
       cleanedResult = cleanedResult.replace(/^Improved:[\s\n]*/i, "");
       cleanedResult = cleanedResult.replace(/^Output:[\s\n]*/i, "");
-      
+
       // Remove common suffixes (more aggressive)
       cleanedResult = cleanedResult.replace(/[\s\n]*- Corrected for grammar.*$/i, "");
       cleanedResult = cleanedResult.replace(/[\s\n]*Note:.*$/i, "");
-      
+
       // Remove quotes if the AI wrapped the whole thing in quotes
       if (cleanedResult.startsWith('"') && cleanedResult.endsWith('"')) {
         cleanedResult = cleanedResult.slice(1, -1);
       }
 
       console.log("Cleaned result:", cleanedResult);
-      
+
       if (cleanedResult === description.trim()) {
-         toast.info("No changes needed", { description: "The AI thinks your description is already great!" });
+        toast.info("No changes needed", { description: "The AI thinks your description is already great!" });
       } else {
-         setDescription(cleanedResult);
-         toast.success("Description improved!");
+        setDescription(cleanedResult);
+        toast.success("Description improved!");
       }
     } catch (error: any) {
       console.error("AI Improve Error:", error);
       if (error.message.includes("Missing API Key")) {
-        toast.error("AI Configuration Missing", { 
-          description: "Please add VITE_PPLX_API_KEY to your .env.local file to use AI features." 
+        toast.error("AI Configuration Missing", {
+          description: "Please add VITE_PPLX_API_KEY to your .env.local file to use AI features."
         });
       } else {
         toast.error("AI Failed", { description: error.message });
@@ -157,26 +157,26 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
             <div className="flex justify-between items-center">
               <Label htmlFor="description">Description (Optional)</Label>
               <div className="flex gap-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className="h-6 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
                   onClick={handleAiDescription}
                   disabled={isAiLoading || !title.trim()}
                 >
-                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Sparkles className="w-3 h-3 mr-1"/>}
+                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
                   Auto-Write
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   className="h-6 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                   onClick={handleAiImprove}
                   disabled={isAiLoading || !description.trim()}
                 >
-                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Wand2 className="w-3 h-3 mr-1"/>}
+                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Wand2 className="w-3 h-3 mr-1" />}
                   Improve
                 </Button>
               </div>
