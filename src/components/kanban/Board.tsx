@@ -74,53 +74,51 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
     setDraggedTaskId(taskId);
   };
 
-  const handleDrop = async (targetStatus: TaskStatus) => {
-    if (!draggedTaskId) return;
-
-    const task = tasks.find((t) => t._id === draggedTaskId);
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    const task = tasks.find((t) => t._id === taskId);
     if (!task) return;
 
-    if (task.status === targetStatus) {
-      setDraggedTaskId(null);
-      return;
-    }
+    if (task.status === newStatus) return;
 
-    if (targetStatus === "in_progress") {
+    if (newStatus === "in_progress") {
       const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
       if (inProgressCount >= 2) {
         toast.warning("Limit Reached", {
           description: "You can only have 2 tasks in progress at once.",
         });
-        setDraggedTaskId(null);
         return;
       }
     }
 
-    if (targetStatus === "blocked") {
-      setPendingBlockTaskId(draggedTaskId);
+    if (newStatus === "blocked") {
+      setPendingBlockTaskId(taskId);
       setBlockModalOpen(true);
-      setDraggedTaskId(null);
       return;
     }
 
     try {
-      const taskRef = doc(db, "tasks", draggedTaskId);
-      const updates: any = { status: targetStatus };
-      if (targetStatus === "done") {
+      const taskRef = doc(db, "tasks", taskId);
+      const updates: any = { status: newStatus };
+      if (newStatus === "done") {
         updates.completedAt = Date.now();
       }
       await updateDoc(taskRef, updates);
       
-      if (targetStatus === "done") {
+      if (newStatus === "done") {
         toast.success("Task Completed!", {
           description: "Great job! Keep up the momentum.",
         });
       }
     } catch (error: any) {
-      toast.error("Failed to move task", {
+      toast.error("Failed to update task status", {
         description: error.message,
       });
     }
+  };
+
+  const handleDrop = async (targetStatus: TaskStatus) => {
+    if (!draggedTaskId) return;
+    await handleStatusChange(draggedTaskId, targetStatus);
     setDraggedTaskId(null);
   };
 
@@ -198,6 +196,7 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
                 onDrop={() => handleDrop(col.id)}
                 selectedTaskIds={selectedTaskIds}
                 onToggleSelection={toggleTaskSelection}
+                onStatusChange={handleStatusChange}
               />
             </div>
           ))}

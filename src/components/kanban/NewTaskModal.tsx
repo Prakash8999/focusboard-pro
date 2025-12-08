@@ -154,9 +154,9 @@ export function NewTaskModal({ open, onOpenChange }: NewTaskModalProps) {
             />
           </div>
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <Label htmlFor="description">Description (Optional)</Label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 self-end sm:self-auto">
                 <Button
                   type="button"
                   variant="ghost"

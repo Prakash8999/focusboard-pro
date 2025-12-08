@@ -14,6 +14,7 @@ interface KanbanColumnProps {
   onDrop: () => void;
   selectedTaskIds: Set<string>;
   onToggleSelection: (taskId: string) => void;
+  onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
 }
 
 export function KanbanColumn({ 
@@ -24,7 +25,8 @@ export function KanbanColumn({
   onDragStart, 
   onDrop,
   selectedTaskIds,
-  onToggleSelection
+  onToggleSelection,
+  onStatusChange
 }: KanbanColumnProps) {
   return (
     <div
@@ -84,6 +86,7 @@ export function KanbanColumn({
             onDragStart={onDragStart} 
             isSelected={selectedTaskIds.has(task._id)}
             onToggleSelection={() => onToggleSelection(task._id)}
+            onStatusChange={onStatusChange}
           />
         ))}
         {tasks.length === 0 && (

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil } from "lucide-react";
+import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil, Circle, Timer, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -14,20 +14,24 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase";
 import { doc, deleteDoc, addDoc, collection } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { TaskStatus } from "./Board";
 
 interface TaskCardProps {
   task: any;
   onDragStart: (taskId: any) => void;
   isSelected: boolean;
   onToggleSelection: () => void;
+  onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
 }
 
-export function TaskCard({ task, onDragStart, isSelected, onToggleSelection }: TaskCardProps) {
+export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onStatusChange }: TaskCardProps) {
   const { user } = useAuth();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -103,6 +107,26 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection }: T
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "todo": return <Circle className="w-3 h-3" />;
+      case "in_progress": return <Timer className="w-3 h-3" />;
+      case "blocked": return <Shield className="w-3 h-3" />;
+      case "done": return <CheckCircle2 className="w-3 h-3" />;
+      default: return <Circle className="w-3 h-3" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "todo": return "text-slate-500";
+      case "in_progress": return "text-blue-500";
+      case "blocked": return "text-red-500";
+      case "done": return "text-green-500";
+      default: return "text-muted-foreground";
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -146,27 +170,72 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection }: T
               <CardTitle className="text-sm font-medium leading-tight">
                 {task.title}
               </CardTitle>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 -mr-1 text-muted-foreground hover:text-foreground"
-                  >
-                    <MoreVertical className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
-                    <Pencil className="w-3 h-3 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                    <Trash2 className="w-3 h-3 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-center -mr-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn("h-6 w-6 text-muted-foreground hover:text-foreground", getStatusColor(task.status))}
+                    >
+                      {getStatusIcon(task.status)}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(task._id, "todo")}
+                      disabled={task.status === "todo"}
+                    >
+                      <Circle className="w-3 h-3 mr-2" />
+                      To Do
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(task._id, "in_progress")}
+                      disabled={task.status === "in_progress"}
+                    >
+                      <Timer className="w-3 h-3 mr-2" />
+                      In Progress
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(task._id, "blocked")}
+                      disabled={task.status === "blocked"}
+                    >
+                      <Shield className="w-3 h-3 mr-2" />
+                      Blocked
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => onStatusChange(task._id, "done")}
+                      disabled={task.status === "done"}
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-2" />
+                      Done
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreVertical className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                      <Pencil className="w-3 h-3 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                      <Trash2 className="w-3 h-3 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-3 pt-2">
