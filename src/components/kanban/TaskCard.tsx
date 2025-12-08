@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil, Circle, Timer, Shield } from "lucide-react";
+import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil, Circle, Timer, Shield, ListTodo } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -109,7 +109,7 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "todo": return <Circle className="w-3 h-3" />;
+      case "todo": return <ListTodo className="w-3 h-3" />;
       case "in_progress": return <Timer className="w-3 h-3" />;
       case "blocked": return <Shield className="w-3 h-3" />;
       case "done": return <CheckCircle2 className="w-3 h-3" />;
@@ -187,7 +187,7 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
                       onClick={() => onStatusChange(task._id, "todo")}
                       disabled={task.status === "todo"}
                     >
-                      <Circle className="w-3 h-3 mr-2" />
+                      <ListTodo className="w-3 h-3 mr-2" />
                       To Do
                     </DropdownMenuItem>
                     <DropdownMenuItem 
