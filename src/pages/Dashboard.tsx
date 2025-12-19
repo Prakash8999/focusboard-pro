@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, QuerySnapshot, DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -71,6 +72,7 @@ export default function Dashboard() {
         </div>
         
         <div className="flex items-center gap-2 md:gap-4">
+          <ModeToggle />
           <Popover>
             <PopoverTrigger asChild>
               <Button

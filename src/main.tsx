@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound.tsx";
 import Dashboard from "@/pages/Dashboard";
 import { useAuth } from "@/hooks/use-auth";
 import "./types/global.d.ts";
+import { ThemeProvider } from "@/components/theme-provider";
 
 function RouteSyncer() {
   const location = useLocation();
@@ -51,6 +52,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <BrowserRouter>
           <RouteSyncer />
           <Routes>
@@ -64,6 +66,7 @@ createRoot(document.getElementById("root")!).render(
           </Routes>
         </BrowserRouter>
         <Toaster />
+      </ThemeProvider>
     </InstrumentationProvider>
   </StrictMode>,
 );

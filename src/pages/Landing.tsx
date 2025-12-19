@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { AuthModal } from "@/components/AuthModal";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function Landing() {
           <span className="font-bold text-lg tracking-tight">FocusBoard</span>
         </div>
         <div className="flex items-center gap-4">
+          <ModeToggle />
           <Button variant="ghost" onClick={() => setIsAuthModalOpen(true)} className="hidden sm:flex">
             Sign In
           </Button>
