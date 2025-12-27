@@ -8,15 +8,20 @@ import { doc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 interface KanbanBoardProps {
   tasks: any[];
   selectedDate: Date;
+  onDateChange: (date: Date | undefined) => void;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
-export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [pendingBlockTaskId, setPendingBlockTaskId] = useState<string | null>(null);
@@ -160,8 +165,32 @@ export function KanbanBoard({ tasks, selectedDate }: KanbanBoardProps) {
             onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
           />
           <label htmlFor="select-all" className="text-sm font-medium cursor-pointer select-none whitespace-nowrap">
-            Select All New
+            Select All
           </label>
+        </div>
+
+        <div className="md:hidden flex items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                size="sm"
+                className="h-8 gap-2 border-dashed"
+              >
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span className="text-xs">{format(selectedDate, "MMM d")}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={onDateChange}
+                initialFocus
+                disabled={(date) => date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {selectedTaskIds.size > 0 && (

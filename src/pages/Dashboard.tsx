@@ -29,7 +29,7 @@ export default function Dashboard() {
         ...doc.data(),
         _id: doc.id,
         // Ensure compatibility with existing code expecting numbers/dates
-        _creationTime: doc.data().createdAt || Date.now(), 
+        _creationTime: doc.data().createdAt || Date.now(),
       }));
       setTasks(tasksData);
       setIsLoading(false);
@@ -58,7 +58,7 @@ export default function Dashboard() {
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden relative selection:bg-primary/20">
       {/* Background Pattern */}
       <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] opacity-50" />
-      
+
       <header className="border-b bg-card/50 backdrop-blur-xl px-3 md:px-8 py-3 md:py-4 flex items-center justify-between shrink-0 z-10">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="bg-gradient-to-br from-primary to-blue-600 p-1.5 md:p-2 rounded-xl shadow-lg shadow-primary/20">
@@ -70,7 +70,7 @@ export default function Dashboard() {
             </h1>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 md:gap-4">
           <ModeToggle />
           <Popover>
@@ -78,7 +78,7 @@ export default function Dashboard() {
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-auto md:w-[240px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
+                  "hidden md:flex w-auto md:w-[240px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
                   !date && "text-muted-foreground"
                 )}
               >
@@ -98,9 +98,9 @@ export default function Dashboard() {
             </PopoverContent>
           </Popover>
 
-          <Button 
-            onClick={() => setIsNewTaskOpen(true)} 
-            className="gap-2 h-9 md:h-10 text-xs md:text-sm rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 px-3 md:px-4"
+          <Button
+            onClick={() => setIsNewTaskOpen(true)}
+            className="hidden md:flex gap-2 h-9 md:h-10 text-xs md:text-sm rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 px-3 md:px-4"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden md:inline">New Task</span>
@@ -112,13 +112,20 @@ export default function Dashboard() {
       </header>
 
       <main className="flex-1 overflow-hidden relative">
-        <KanbanBoard tasks={tasks} selectedDate={date || new Date()} />
+        <KanbanBoard tasks={tasks} selectedDate={date || new Date()} onDateChange={setDate} />
       </main>
 
-      <NewTaskModal 
-        open={isNewTaskOpen} 
-        onOpenChange={setIsNewTaskOpen} 
+      <NewTaskModal
+        open={isNewTaskOpen}
+        onOpenChange={setIsNewTaskOpen}
       />
+
+      <Button
+        onClick={() => setIsNewTaskOpen(true)}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 z-50 p-0 flex items-center justify-center animate-in zoom-in duration-300"
+      >
+        <Plus className="w-6 h-6 text-primary-foreground" />
+      </Button>
     </div>
   );
 }
