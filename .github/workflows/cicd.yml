@@ -23,7 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run build --if present
       - name: Upload Build Artifact
-        used: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: build-files
           path: dist
