@@ -1,69 +1,109 @@
-name: Node.js CI/CD 
+# ============================
+# WORKFLOW IDENTIFICATION
+# ============================
+# This is just a human-readable name for the workflow.
+# It helps identify this pipeline in the GitHub Actions UI.
+# Changing this name does NOT affect execution or logic in any way.
+name: Node.js CI/CD
 
+# ============================
+# WORKFLOW TRIGGER
+# ============================
+# This section defines WHEN the pipeline should run.
+# In this case, the workflow is triggered automatically
+# whenever code is pushed to the main branch.
+# This push event is the entry point of the entire CI/CD pipeline.
 on:
   push:
-    branches: [ "main"]
-
-
-
+    branches: ["main"]
 
 jobs:
+  # ============================
+  # BUILD JOB (CONTINUOUS INTEGRATION)
+  # ============================
   build:
+    # This specifies the runner for the build job.
+    # GitHub spins up a fresh Ubuntu virtual machine for this job.
+    # The runner starts clean, runs the job, and is destroyed after completion.
     runs-on: ubuntu-latest
+
+    # Define the Node.js version used during the build.
+    # The matrix strategy allows running the same job
+    # with multiple Node versions if needed.
     strategy:
       matrix:
-        node-version: [20.x]  
+        node-version: [20.x]
+
     steps:
+      # Checkout the repository code into the runner.
+      # Without this step, the runner would not have access
+      # to the project files or source code.
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{matrix.node-version}}
+
+      # Install the specified Node.js version on the runner.
+      # This ensures the CI environment matches the expected runtime.
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
-           node-version: ${{matrix.node-version}}
-           cache: 'npm'
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'   # Cache npm downloads to speed up dependency installation
+
+      # Install dependencies using package-lock.json.
+      # npm ci ensures deterministic installs and avoids version drift.
       - run: npm ci
+
+      # Build the application and generate the dist folder.
+      # --if-present prevents failure if the build script is missing.
       - run: npm run build --if-present
+
+      # Upload the build output as an artifact.
+      # This artifact becomes immutable and reusable by other jobs.
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-files
           path: dist
 
-
-   
+  # ============================
+  # DEPLOY JOB (CONTINUOUS DELIVERY)
+  # ============================
   deploy:
+    # This job will only run if the build job succeeds.
+    # If build fails, deployment will never start.
     needs: build
+
+    # A new clean runner is created for deployment.
+    # This is NOT the same runner used in the build job.
     runs-on: ubuntu-latest
-     
+
     steps:
-    - name: Download the artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: build-files
-        path: dist
-    - name: Copy files via SSH
-      
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        source: "dist/*"        
-        target: "/home/ubuntu/project/focusboard-pro" 
+      # Download the artifact created during the build job.
+      # This ensures the same build output is deployed
+      # without rebuilding the application.
+      - name: Download the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-files
+          path: dist
 
-    - name: Restart PM2
-      uses: appleboy/ssh-action@v0.1.10
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          pm2 reload all    
-          echo "Deployment successful!"  
+      # Copy the build files to the EC2 server using SSH.
+      - name: Copy files via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/*"
+          target: "/home/ubuntu/project/focusboard-pro"
 
-
-
-
-
-
-        
-         
+      # Restart the Node.js application using PM2
+      # so the new version becomes live.
+      - name: Restart PM2
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            pm2 reload all
+            echo "Deployment successful!"
