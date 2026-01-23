@@ -2,12 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil, Circle, Timer, Shield, ListTodo } from "lucide-react";
+import { Trash2, AlertCircle, Clock, CheckCircle2, Sparkles, BrainCircuit, MoreVertical, Pencil, Circle, Timer, Shield, ListTodo, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditTaskModal } from "./EditTaskModal";
 import {
   DropdownMenu,
@@ -35,11 +35,33 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
   const { user } = useAuth();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [linkedTopic, setLinkedTopic] = useState<any>(null);
+
+  // Fetch linked topic if exists
+  useEffect(() => {
+    if (!task.linkedTopicId) {
+      setLinkedTopic(null);
+      return;
+    }
+
+    const fetchTopic = async () => {
+      try {
+        const topicDoc = await import("firebase/firestore").then(m => m.getDoc(doc(db, "topics", task.linkedTopicId)));
+        if (topicDoc.exists()) {
+          setLinkedTopic({ id: topicDoc.id, ...topicDoc.data() });
+        }
+      } catch (error) {
+        console.error("Failed to fetch linked topic:", error);
+      }
+    };
+
+    fetchTopic();
+  }, [task.linkedTopicId]);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Are you sure you want to delete this task?")) return;
-    
+
     try {
       await deleteDoc(doc(db, "tasks", task._id));
       toast.success("Task deleted");
@@ -81,13 +103,13 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
   const handleAiUnblock = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!task.blockedReason) return;
-    
+
     setIsAiLoading(true);
     try {
       // Mock AI
       await new Promise(resolve => setTimeout(resolve, 1000));
       const tips = ["Break it down", "Ask for help", "Take a break"];
-      
+
       if (tips.length > 0) {
         toast.message("Unblocking Tips", {
           description: (
@@ -144,7 +166,7 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
           "absolute top-2 left-2 z-20 transition-opacity duration-200",
           isSelected ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
         )}>
-          <Checkbox 
+          <Checkbox
             checked={isSelected}
             onCheckedChange={() => onToggleSelection()}
             className="bg-background/80 backdrop-blur-sm border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
@@ -152,11 +174,11 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
           />
         </div>
 
-        <Card 
+        <Card
           className={cn(
             "shadow-sm hover:shadow-md transition-all border-l-4 border-l-transparent data-[status=blocked]:border-l-red-500 data-[status=done]:border-l-green-500 data-[status=in_progress]:border-l-blue-500",
             isSelected && "ring-2 ring-primary border-primary/50"
-          )} 
+          )}
           data-status={task.status}
           onClick={(e) => {
             // Allow clicking card to select if in selection mode (optional, but good UX)
@@ -183,28 +205,28 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Change Status</DropdownMenuLabel>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onStatusChange(task._id, "todo")}
                       disabled={task.status === "todo"}
                     >
                       <ListTodo className="w-3 h-3 mr-2" />
                       To Do
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onStatusChange(task._id, "in_progress")}
                       disabled={task.status === "in_progress"}
                     >
                       <Timer className="w-3 h-3 mr-2" />
                       In Progress
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onStatusChange(task._id, "blocked")}
                       disabled={task.status === "blocked"}
                     >
                       <Shield className="w-3 h-3 mr-2" />
                       Blocked
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onStatusChange(task._id, "done")}
                       disabled={task.status === "done"}
                     >
@@ -244,7 +266,17 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
                 {task.description}
               </p>
             )}
-            
+
+            {linkedTopic && (
+              <div className="mb-2">
+                <Badge variant="outline" className="text-[10px] gap-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                  <BookOpen className="w-3 h-3" />
+                  {linkedTopic.title}
+                </Badge>
+              </div>
+            )}
+
+
             {task.status === "blocked" && task.blockedReason && (
               <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs p-2 rounded-md mt-2">
                 <div className="flex items-start gap-1.5">
@@ -258,23 +290,23 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
                   onClick={handleAiUnblock}
                   disabled={isAiLoading}
                 >
-                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <BrainCircuit className="w-3 h-3 mr-1"/>}
+                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <BrainCircuit className="w-3 h-3 mr-1" />}
                   Get Unstuck
                 </Button>
               </div>
             )}
 
             {task.status === "todo" && (
-               <Button 
-                 variant="ghost" 
-                 size="sm" 
-                 className="w-full mt-2 h-6 text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300"
-                 onClick={handleAiBreakdown}
-                 disabled={isAiLoading}
-               >
-                 {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1"/> : <Sparkles className="w-3 h-3 mr-1"/>}
-                 AI Breakdown
-               </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-2 h-6 text-[10px] text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300"
+                onClick={handleAiBreakdown}
+                disabled={isAiLoading}
+              >
+                {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                AI Breakdown
+              </Button>
             )}
 
             <div className="flex flex-col gap-1 mt-3 pt-2 border-t border-border/50">
@@ -300,10 +332,10 @@ export function TaskCard({ task, onDragStart, isSelected, onToggleSelection, onS
           </CardContent>
         </Card>
       </motion.div>
-      <EditTaskModal 
-        task={task} 
-        open={isEditOpen} 
-        onOpenChange={setIsEditOpen} 
+      <EditTaskModal
+        task={task}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
       />
     </>
   );

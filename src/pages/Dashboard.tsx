@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot, QuerySnapshot, DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { ModeToggle } from "@/components/mode-toggle";
+import { TabNavigation, TabType } from "@/components/study/TabNavigation";
+import { TopicsPage } from "@/components/study/TopicsPage";
+import { LearningTopicsPage } from "@/components/study/LearningTopicsPage";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -19,6 +22,10 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
+
+  // Study app state
+  const [activeTab, setActiveTab] = useState<TabType>("topics");
+  const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>();
 
   useEffect(() => {
     if (!user?._id) return;
@@ -28,7 +35,6 @@ export default function Dashboard() {
       const tasksData = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
         ...doc.data(),
         _id: doc.id,
-        // Ensure compatibility with existing code expecting numbers/dates
         _creationTime: doc.data().createdAt || Date.now(),
       }));
       setTasks(tasksData);
@@ -66,53 +72,77 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 className="text-base md:text-xl font-bold tracking-tight flex items-center gap-2">
-              FocusBoard <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">PRO</span>
+              Study App <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">PERSONAL</span>
             </h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
           <ModeToggle />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "hidden md:flex w-auto md:w-[240px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
-                <span className="hidden md:inline">{date ? format(date, "PPP") : <span>Pick a date</span>}</span>
-                <span className="md:hidden">{date ? format(date, "MMM d") : <span>Date</span>}</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={(d) => d && setDate(d)}
-                initialFocus
-                disabled={(date) => date > new Date()}
-              />
-            </PopoverContent>
-          </Popover>
 
-          <Button
-            onClick={() => setIsNewTaskOpen(true)}
-            className="hidden md:flex gap-2 h-9 md:h-10 text-xs md:text-sm rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 px-3 md:px-4"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden md:inline">New Task</span>
-            <span className="md:hidden">New</span>
-          </Button>
+          {/* Show calendar only on Kanban tab */}
+          {activeTab === "kanban" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "hidden md:flex w-auto md:w-[240px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <span className="hidden md:inline">{date ? format(date, "PPP") : <span>Pick a date</span>}</span>
+                  <span className="md:hidden">{date ? format(date, "MMM d") : <span>Date</span>}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={(d) => d && setDate(d)}
+                  initialFocus
+                  disabled={(date) => date > new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {/* Show New Task button only on Kanban tab */}
+          {activeTab === "kanban" && (
+            <Button
+              onClick={() => setIsNewTaskOpen(true)}
+              className="hidden md:flex gap-2 h-9 md:h-10 text-xs md:text-sm rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-105 px-3 md:px-4"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden md:inline">New Task</span>
+              <span className="md:hidden">New</span>
+            </Button>
+          )}
+
           <div className="h-6 w-px bg-border mx-1" />
           {user && <ProfileModal user={user as any} />}
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
       <main className="flex-1 overflow-hidden relative">
-        <KanbanBoard tasks={tasks} selectedDate={date || new Date()} onDateChange={setDate} />
+        {activeTab === "topics" && (
+          <TopicsPage
+            selectedTopicId={selectedTopicId}
+            onTopicSelect={setSelectedTopicId}
+          />
+        )}
+
+        {activeTab === "learning" && (
+          <LearningTopicsPage />
+        )}
+
+        {activeTab === "kanban" && (
+          <KanbanBoard tasks={tasks} selectedDate={date || new Date()} onDateChange={setDate} />
+        )}
       </main>
 
       <NewTaskModal
@@ -120,12 +150,15 @@ export default function Dashboard() {
         onOpenChange={setIsNewTaskOpen}
       />
 
-      <Button
-        onClick={() => setIsNewTaskOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 z-50 p-0 flex items-center justify-center animate-in zoom-in duration-300"
-      >
-        <Plus className="w-6 h-6 text-primary-foreground" />
-      </Button>
+      {/* FAB for Kanban */}
+      {activeTab === "kanban" && (
+        <Button
+          onClick={() => setIsNewTaskOpen(true)}
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 z-50 p-0 flex items-center justify-center animate-in zoom-in duration-300"
+        >
+          <Plus className="w-6 h-6 text-primary-foreground" />
+        </Button>
+      )}
     </div>
   );
 }
