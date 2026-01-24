@@ -25,6 +25,7 @@ export function LearningTopicsPage() {
     const [bulkTopics, setBulkTopics] = useState("");
     const [bulkGroupTitle, setBulkGroupTitle] = useState("");
     const [showBulkAdd, setShowBulkAdd] = useState(false);
+    const [showSingleAdd, setShowSingleAdd] = useState(false);
     const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState("");
     const [editingGroupTitle, setEditingGroupTitle] = useState("");
@@ -94,13 +95,18 @@ export function LearningTopicsPage() {
         if (lines.length === 0) return;
 
         try {
-            for (const line of lines) {
+            // Use a base timestamp and increment for each item to maintain order
+            const baseTimestamp = Date.now();
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
                 const topicRef = doc(db, "learningTopics", crypto.randomUUID());
                 const topicData: any = {
                     userId: user._id,
                     title: line,
                     completed: false,
-                    createdAt: Date.now(),
+                    // Add index to timestamp to maintain order (first item gets highest timestamp)
+                    createdAt: baseTimestamp + (lines.length - i),
                 };
 
                 if (bulkGroupTitle.trim()) {
@@ -203,15 +209,32 @@ export function LearningTopicsPage() {
                             {completedCount} of {totalCount} completed
                         </p>
                     </div>
-                    <Button
-                        onClick={() => setShowBulkAdd(!showBulkAdd)}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Bulk Add
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={() => {
+                                setShowSingleAdd(!showSingleAdd);
+                                if (showBulkAdd) setShowBulkAdd(false);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setShowBulkAdd(!showBulkAdd);
+                                if (showSingleAdd) setShowSingleAdd(false);
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Bulk Add
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Bulk Add */}
@@ -248,7 +271,7 @@ export function LearningTopicsPage() {
                             placeholder="Paste topics here (one per line)..."
                             value={bulkTopics}
                             onChange={(e) => setBulkTopics(e.target.value)}
-                            className="min-h-[120px]"
+                            className="min-h-[120px] max-h-[300px] overflow-y-auto resize-none"
                         />
                         <div className="flex gap-2">
                             <Button onClick={handleBulkAdd} size="sm">
@@ -270,45 +293,47 @@ export function LearningTopicsPage() {
                 )}
 
                 {/* Add Single Topic */}
-                <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="Group title (optional)..."
-                            value={newTopicGroupTitle}
-                            onChange={(e) => setNewTopicGroupTitle(e.target.value)}
-                            className="flex-1"
-                        />
-                        {existingGroupTitles.length > 0 && (
-                            <Select
+                {showSingleAdd && (
+                    <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Group title (optional)..."
                                 value={newTopicGroupTitle}
-                                onValueChange={setNewTopicGroupTitle}
-                            >
-                                <SelectTrigger className="w-[200px]">
-                                    <SelectValue placeholder="Or select existing" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {existingGroupTitles.map((title) => (
-                                        <SelectItem key={title} value={title}>
-                                            {title}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
+                                onChange={(e) => setNewTopicGroupTitle(e.target.value)}
+                                className="flex-1"
+                            />
+                            {existingGroupTitles.length > 0 && (
+                                <Select
+                                    value={newTopicGroupTitle}
+                                    onValueChange={setNewTopicGroupTitle}
+                                >
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Or select existing" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {existingGroupTitles.map((title) => (
+                                            <SelectItem key={title} value={title}>
+                                                {title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="Add a learning topic..."
+                                value={newTopic}
+                                onChange={(e) => setNewTopic(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleAddTopic()}
+                            />
+                            <Button onClick={handleAddTopic} size="sm" className="gap-2">
+                                <Plus className="w-4 h-4" />
+                                Add
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder="Add a learning topic..."
-                            value={newTopic}
-                            onChange={(e) => setNewTopic(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && handleAddTopic()}
-                        />
-                        <Button onClick={handleAddTopic} size="sm" className="gap-2">
-                            <Plus className="w-4 h-4" />
-                            Add
-                        </Button>
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Topics List */}
