@@ -173,11 +173,11 @@ export function TopicsPage({ selectedTopicId, onTopicSelect }: TopicsPageProps) 
                         )}
                     </div>
                 ) : (
-                    <div className="divide-y">
+                    <div className="p-4 md:p-6 space-y-3">
                         {filteredTopics.map((topic) => (
                             <div
                                 key={topic.id}
-                                className="flex items-center gap-3 px-4 md:px-6 py-4 hover:bg-muted/50 transition-colors group"
+                                className="flex items-center gap-3 px-4 md:px-6 py-4 bg-card border border-border rounded-lg shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-200 group cursor-pointer"
                             >
                                 <button
                                     onClick={() => onTopicSelect(topic.id)}

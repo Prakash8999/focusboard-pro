@@ -38,13 +38,13 @@ function RouteSyncer() {
 
 function ProtectedDashboard() {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) return null;
-  
+
   if (!isAuthenticated) {
     return <AuthPage redirectAfterAuth="/dashboard" />;
   }
-  
+
   return <Dashboard />;
 }
 
@@ -58,9 +58,13 @@ createRoot(document.getElementById("root")!).render(
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-            <Route 
-              path="/dashboard" 
-              element={<ProtectedDashboard />} 
+            <Route
+              path="/dashboard"
+              element={<ProtectedDashboard />}
+            />
+            <Route
+              path="/dashboard/topics/:topicId"
+              element={<ProtectedDashboard />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>

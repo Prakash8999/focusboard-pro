@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useParams, useNavigate } from "react-router";
 import { KanbanBoard } from "@/components/kanban/Board";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutDashboard, CalendarIcon } from "lucide-react";
@@ -20,6 +20,8 @@ import { LearningTopicsPage } from "@/components/study/LearningTopicsPage";
 export default function Dashboard() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const params = useParams();
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
@@ -28,24 +30,49 @@ export default function Dashboard() {
   // Get tab from URL or default to "topic"
   const tabFromUrl = (searchParams.get("tab") as TabType) || "topic";
   const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
-  const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>();
+  const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>(params.topicId);
+
+  // Sync with URL params for topic ID
+  useEffect(() => {
+    if (params.topicId) {
+      setSelectedTopicId(params.topicId);
+      setActiveTab("topic");
+    }
+  }, [params.topicId]);
 
   // Sync activeTab with URL on mount and when URL changes
   useEffect(() => {
     const urlTab = searchParams.get("tab") as TabType;
     if (urlTab && (urlTab === "topic" || urlTab === "list" || urlTab === "kanban")) {
       setActiveTab(urlTab);
-    } else {
-      // Set default tab to "topic" if no valid tab in URL
+    } else if (!params.topicId) {
+      // Set default tab to "topic" if no valid tab in URL and no topic ID
       setSearchParams({ tab: "topic" }, { replace: true });
       setActiveTab("topic");
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, params.topicId]);
 
   // Update URL when tab changes
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    setSearchParams({ tab });
+    // Navigate to base dashboard when switching tabs (clear topic param)
+    if (params.topicId) {
+      navigate(`/dashboard?tab=${tab}`);
+    } else {
+      setSearchParams({ tab });
+    }
+  };
+
+  // Handle topic selection
+  const handleTopicSelect = (topicId: string | undefined) => {
+    setSelectedTopicId(topicId);
+    if (topicId) {
+      // Navigate to topic detail route
+      navigate(`/dashboard/topics/${topicId}`);
+    } else {
+      // Navigate back to topics list
+      navigate("/dashboard?tab=topic");
+    }
   };
 
   useEffect(() => {
@@ -153,7 +180,7 @@ export default function Dashboard() {
         {activeTab === "topic" && (
           <TopicsPage
             selectedTopicId={selectedTopicId}
-            onTopicSelect={setSelectedTopicId}
+            onTopicSelect={handleTopicSelect}
           />
         )}
 

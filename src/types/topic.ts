@@ -1,13 +1,16 @@
+import { OutputData } from "@editorjs/editorjs";
+
 export interface Topic {
     id: string;
     userId: string;
     title: string;
-    content: string;
+    content: string | OutputData; // Support both legacy string and new Editor.js format
     images: string[]; // Cloudinary URLs
     linkedTaskIds: string[]; // References to kanban tasks
     createdAt: number;
     updatedAt: number;
 }
+
 
 export interface KanbanTask {
     _id: string;

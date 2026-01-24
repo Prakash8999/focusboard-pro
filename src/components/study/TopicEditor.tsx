@@ -2,14 +2,17 @@ import { useState, useEffect } from "react";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "./RichTextEditor";
 import { ImageUploader, ImagePreview } from "./ImageUploader";
 import { LinkedTasksPanel } from "./LinkedTasksPanel";
 import { Topic } from "@/types/topic";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { OutputData } from "@editorjs/editorjs";
+import "./editor.css";
+
 
 interface TopicEditorProps {
     topicId?: string;
@@ -21,7 +24,9 @@ interface TopicEditorProps {
 export function TopicEditor({ topicId, initialTopic, onSave, onBack }: TopicEditorProps) {
     const { user } = useAuth();
     const [title, setTitle] = useState(initialTopic?.title || "");
-    const [content, setContent] = useState(initialTopic?.content || "");
+    const [content, setContent] = useState<OutputData | undefined>(
+        typeof initialTopic?.content === "object" ? initialTopic.content : undefined
+    );
     const [images, setImages] = useState<string[]>(initialTopic?.images || []);
     const [linkedTaskIds, setLinkedTaskIds] = useState<string[]>(initialTopic?.linkedTaskIds || []);
     const [saving, setSaving] = useState(false);
@@ -30,7 +35,9 @@ export function TopicEditor({ topicId, initialTopic, onSave, onBack }: TopicEdit
     useEffect(() => {
         if (initialTopic) {
             setTitle(initialTopic.title);
-            setContent(initialTopic.content);
+            setContent(
+                typeof initialTopic.content === "object" ? initialTopic.content : undefined
+            );
             setImages(initialTopic.images);
             setLinkedTaskIds(initialTopic.linkedTaskIds);
             setHasChanges(false);
@@ -53,7 +60,7 @@ export function TopicEditor({ topicId, initialTopic, onSave, onBack }: TopicEdit
             const topicData = {
                 userId: user._id,
                 title: title.trim(),
-                content: content.trim(),
+                content: content || { blocks: [] }, // Store Editor.js format
                 images,
                 linkedTaskIds,
                 updatedAt: Date.now(),
@@ -138,26 +145,26 @@ export function TopicEditor({ topicId, initialTopic, onSave, onBack }: TopicEdit
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
-                <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+                <div className="max-w-4xl mx-auto p-2 md:p-6 space-y-4 md:space-y-6">
                     {/* Title */}
                     <div>
                         <Input
                             placeholder="Topic Title (e.g., CAP Theorem)"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="text-2xl font-bold border-0 px-0 focus-visible:ring-0"
+                            className="text-xl md:text-2xl font-bold border-0 px-0 focus-visible:ring-0"
                         />
                     </div>
 
                     {/* Content */}
-                    <div>
-                        <Textarea
-                            placeholder="Write your notes here... No limits on length. Use this space for deep learning notes, code snippets, explanations, etc."
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            className="min-h-[400px] resize-none border-0 px-0 focus-visible:ring-0 text-base leading-relaxed"
+                    <div className="border-0 md:border-2 border-border rounded-none md:rounded-lg p-1 md:pl-14 md:pr-14 md:py-6 bg-transparent md:bg-card/50 min-h-[300px] md:min-h-[500px]">
+                        <RichTextEditor
+                            data={content}
+                            onChange={setContent}
+                            placeholder="Write your notes here... Use the toolbar to format text, add code blocks, lists, and more."
                         />
                     </div>
+
 
                     {/* Images */}
                     <div className="space-y-4">
