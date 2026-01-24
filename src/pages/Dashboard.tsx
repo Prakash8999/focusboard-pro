@@ -34,8 +34,8 @@ export default function Dashboard() {
 
   // Sync with URL params for topic ID
   useEffect(() => {
+    setSelectedTopicId(params.topicId);
     if (params.topicId) {
-      setSelectedTopicId(params.topicId);
       setActiveTab("topic");
     }
   }, [params.topicId]);
