@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router";
 import { KanbanBoard } from "@/components/kanban/Board";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutDashboard, CalendarIcon } from "lucide-react";
@@ -18,14 +19,34 @@ import { LearningTopicsPage } from "@/components/study/LearningTopicsPage";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  // Study app state
-  const [activeTab, setActiveTab] = useState<TabType>("topics");
+  // Get tab from URL or default to "topic"
+  const tabFromUrl = (searchParams.get("tab") as TabType) || "topic";
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
   const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>();
+
+  // Sync activeTab with URL on mount and when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as TabType;
+    if (urlTab && (urlTab === "topic" || urlTab === "list" || urlTab === "kanban")) {
+      setActiveTab(urlTab);
+    } else {
+      // Set default tab to "topic" if no valid tab in URL
+      setSearchParams({ tab: "topic" }, { replace: true });
+      setActiveTab("topic");
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     if (!user?._id) return;
@@ -126,17 +147,17 @@ export default function Dashboard() {
       </header>
 
       {/* Tab Navigation */}
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
       <main className="flex-1 overflow-hidden relative">
-        {activeTab === "topics" && (
+        {activeTab === "topic" && (
           <TopicsPage
             selectedTopicId={selectedTopicId}
             onTopicSelect={setSelectedTopicId}
           />
         )}
 
-        {activeTab === "learning" && (
+        {activeTab === "list" && (
           <LearningTopicsPage />
         )}
 

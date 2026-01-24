@@ -1,7 +1,7 @@
 import { BookOpen, KanbanSquare, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabType = "topics" | "learning" | "kanban";
+export type TabType = "topic" | "list" | "kanban";
 
 interface TabNavigationProps {
     activeTab: TabType;
@@ -10,8 +10,8 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
     const tabs = [
-        { id: "topics" as TabType, label: "Topics", icon: BookOpen },
-        { id: "learning" as TabType, label: "Learning Topics", icon: CheckSquare },
+        { id: "topic" as TabType, label: "Topics", icon: BookOpen },
+        { id: "list" as TabType, label: "Learning Topics", icon: CheckSquare },
         { id: "kanban" as TabType, label: "Kanban", icon: KanbanSquare },
     ];
 
