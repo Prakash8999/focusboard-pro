@@ -32,15 +32,31 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
     const isToday = isSameDay(selectedDate, new Date());
 
     if (task.status === "done") {
-      return task.completedAt ? isSameDay(new Date(task.completedAt), selectedDate) : false;
+      // Show all done tasks by default (when today is selected)
+      // Otherwise filter by the selected date
+      if (isToday) {
+        return true; // Show all done tasks
+      } else {
+        return task.completedAt ? isSameDay(new Date(task.completedAt), selectedDate) : false;
+      }
     } else {
       return isToday;
     }
   });
 
+  // Sort done tasks by completedAt (latest first)
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (a.status === "done" && b.status === "done") {
+      const aTime = a.completedAt || 0;
+      const bTime = b.completedAt || 0;
+      return bTime - aTime; // Descending order (latest first)
+    }
+    return 0;
+  });
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedTaskIds(new Set(filteredTasks.map(t => t._id)));
+      setSelectedTaskIds(new Set(sortedTasks.map(t => t._id)));
     } else {
       setSelectedTaskIds(new Set());
     }
@@ -161,7 +177,7 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
         <div className="flex items-center gap-2 shrink-0">
           <Checkbox
             id="select-all"
-            checked={filteredTasks.length > 0 && selectedTaskIds.size === filteredTasks.length}
+            checked={sortedTasks.length > 0 && selectedTaskIds.size === sortedTasks.length}
             onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
           />
           <label htmlFor="select-all" className="text-sm font-medium cursor-pointer select-none whitespace-nowrap">
@@ -220,7 +236,7 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
                 id={col.id}
                 label={col.label}
                 color={col.color}
-                tasks={filteredTasks.filter((t) => t.status === col.id)}
+                tasks={sortedTasks.filter((t) => t.status === col.id)}
                 onDragStart={handleDragStart}
                 onDrop={() => handleDrop(col.id)}
                 selectedTaskIds={selectedTaskIds}
