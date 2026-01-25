@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router";
 import { KanbanBoard } from "@/components/kanban/Board";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutDashboard, CalendarIcon } from "lucide-react";
+import { Plus, LayoutDashboard, CalendarIcon, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { NewTaskModal } from "@/components/kanban/NewTaskModal";
 import { ProfileModal } from "@/components/ProfileModal";
@@ -16,6 +16,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { TabNavigation, TabType } from "@/components/study/TabNavigation";
 import { TopicsPage } from "@/components/study/TopicsPage";
 import { LearningTopicsPage } from "@/components/study/LearningTopicsPage";
+import type { DateRange } from "react-day-picker";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   // Get tab from URL or default to "topic"
   const tabFromUrl = (searchParams.get("tab") as TabType) || "topic";
@@ -130,30 +131,53 @@ export default function Dashboard() {
 
           {/* Show calendar only on Kanban tab */}
           {activeTab === "kanban" && (
-            <Popover>
-              <PopoverTrigger asChild>
+            <div className="hidden md:flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={dateRange?.from ? "default" : "outline"}
+                    className={cn(
+                      "w-auto md:w-[280px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
+                      !dateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                    <span>
+                      {dateRange?.from ? (
+                        dateRange?.to ? (
+                          `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
+                        ) : (
+                          format(dateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        "Filter by date"
+                      )}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    initialFocus
+                    disabled={(date) => date > new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {dateRange?.from && (
                 <Button
-                  variant={"outline"}
-                  className={cn(
-                    "hidden md:flex w-auto md:w-[240px] justify-start text-left font-normal h-9 md:h-10 text-xs md:text-sm shadow-sm px-2.5 md:px-4",
-                    !date && "text-muted-foreground"
-                  )}
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 md:h-10 px-2"
+                  onClick={() => setDateRange(undefined)}
                 >
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
-                  <span className="hidden md:inline">{date ? format(date, "PPP") : <span>Pick a date</span>}</span>
-                  <span className="md:hidden">{date ? format(date, "MMM d") : <span>Date</span>}</span>
+                  <X className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(d) => d && setDate(d)}
-                  initialFocus
-                  disabled={(date) => date > new Date()}
-                />
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
           )}
 
           {/* Show New Task button only on Kanban tab */}
@@ -176,21 +200,24 @@ export default function Dashboard() {
       {/* Tab Navigation */}
       <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <main className="flex-1 overflow-hidden relative">
-        {activeTab === "topic" && (
-          <TopicsPage
-            selectedTopicId={selectedTopicId}
-            onTopicSelect={handleTopicSelect}
-          />
-        )}
+      <main className="flex-1 overflow-hidden relative pb-0 md:pb-0">
+        {/* Content wrapper with mobile bottom padding */}
+        <div className="h-full pb-20 md:pb-0">
+          {activeTab === "topic" && (
+            <TopicsPage
+              selectedTopicId={selectedTopicId}
+              onTopicSelect={handleTopicSelect}
+            />
+          )}
 
-        {activeTab === "list" && (
-          <LearningTopicsPage />
-        )}
+          {activeTab === "list" && (
+            <LearningTopicsPage />
+          )}
 
-        {activeTab === "kanban" && (
-          <KanbanBoard tasks={tasks} selectedDate={date || new Date()} onDateChange={setDate} />
-        )}
+          {activeTab === "kanban" && (
+            <KanbanBoard tasks={tasks} dateRange={dateRange} onDateRangeChange={setDateRange} />
+          )}
+        </div>
       </main>
 
       <NewTaskModal
@@ -202,7 +229,7 @@ export default function Dashboard() {
       {activeTab === "kanban" && (
         <Button
           onClick={() => setIsNewTaskOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 z-50 p-0 flex items-center justify-center animate-in zoom-in duration-300"
+          className="md:hidden fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90 z-50 p-0 flex items-center justify-center animate-in zoom-in duration-300"
         >
           <Plus className="w-6 h-6 text-primary-foreground" />
         </Button>

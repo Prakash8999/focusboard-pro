@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KanbanColumn } from "./Column";
 import { toast } from "sonner";
 import { BlockTaskModal } from "./BlockTaskModal";
-import { isSameDay } from "date-fns";
+import { isSameDay, isWithinInterval } from "date-fns";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,37 +11,52 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
+import type { DateRange } from "react-day-picker";
 
 interface KanbanBoardProps {
   tasks: any[];
-  selectedDate: Date;
-  onDateChange: (date: Date | undefined) => void;
+  dateRange: DateRange | undefined;
+  onDateRangeChange: (range: DateRange | undefined) => void;
 }
 
 export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
-export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, dateRange, onDateRangeChange }: KanbanBoardProps) {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [pendingBlockTaskId, setPendingBlockTaskId] = useState<string | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
-  // Filter tasks based on selected date
+  // Filter tasks based on selected date range
   const filteredTasks = tasks.filter((task) => {
-    const isToday = isSameDay(selectedDate, new Date());
-
-    if (task.status === "done") {
-      // Show all done tasks by default (when today is selected)
-      // Otherwise filter by the selected date
-      if (isToday) {
-        return true; // Show all done tasks
-      } else {
-        return task.completedAt ? isSameDay(new Date(task.completedAt), selectedDate) : false;
-      }
-    } else {
-      return isToday;
+    // For non-done tasks, always show only today's tasks
+    if (task.status !== "done") {
+      return isSameDay(new Date(), new Date());
     }
+
+    // For done tasks, apply date range filter if set
+    if (dateRange?.from || dateRange?.to) {
+      if (!task.completedAt) return false;
+
+      const completedDate = new Date(task.completedAt);
+
+      // If we have both from and to dates
+      if (dateRange.from && dateRange.to) {
+        return isWithinInterval(completedDate, {
+          start: dateRange.from,
+          end: dateRange.to
+        });
+      }
+
+      // If we only have a from date (single date selection)
+      if (dateRange.from) {
+        return isSameDay(completedDate, dateRange.from);
+      }
+    }
+
+    // No date filter - show all done tasks
+    return true;
   });
 
   // Sort done tasks by completedAt (latest first)
@@ -119,10 +134,16 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
 
     try {
       const taskRef = doc(db, "tasks", taskId);
-      const updates: any = { status: newStatus };
+      const now = Date.now();
+      const updates: any = {
+        status: newStatus,
+        updatedAt: now
+      };
+
       if (newStatus === "done") {
-        updates.completedAt = Date.now();
+        updates.completedAt = now;
       }
+
       await updateDoc(taskRef, updates);
 
       if (newStatus === "done") {
@@ -149,7 +170,8 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
       const taskRef = doc(db, "tasks", pendingBlockTaskId);
       await updateDoc(taskRef, {
         status: "blocked",
-        blockedReason: reason
+        blockedReason: reason,
+        updatedAt: Date.now()
       });
       toast.info("Task Blocked", {
         description: "Don't worry, you'll unblock it soon.",
@@ -185,28 +207,50 @@ export function KanbanBoard({ tasks, selectedDate, onDateChange }: KanbanBoardPr
           </label>
         </div>
 
-        <div className="md:hidden flex items-center">
+        <div className="md:hidden flex items-center gap-2">
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                variant={"outline"}
+                variant={dateRange?.from ? "default" : "outline"}
                 size="sm"
                 className="h-8 gap-2 border-dashed"
               >
                 <CalendarIcon className="h-3.5 w-3.5" />
-                <span className="text-xs">{format(selectedDate, "MMM d")}</span>
+                <span className="text-xs">
+                  {dateRange?.from ? (
+                    dateRange?.to ? (
+                      `${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")}`
+                    ) : (
+                      format(dateRange.from, "MMM d")
+                    )
+                  ) : (
+                    "Filter"
+                  )}
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={onDateChange}
+                mode="range"
+                selected={dateRange}
+                onSelect={onDateRangeChange}
+                numberOfMonths={1}
                 initialFocus
                 disabled={(date) => date > new Date()}
               />
             </PopoverContent>
           </Popover>
+
+          {dateRange?.from && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => onDateRangeChange(undefined)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
         {selectedTaskIds.size > 0 && (
