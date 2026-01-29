@@ -183,6 +183,7 @@ export function TopicEditor({ topicId, initialTopic, onSave, onBack }: TopicEdit
                     {/* Content */}
                     <div className="border-0 md:border-2 border-border rounded-none md:rounded-lg p-1 md:pl-14 md:pr-14 md:py-6 bg-transparent md:bg-card/50 min-h-[300px] md:min-h-[500px]">
                         <RichTextEditor
+                            key={topicId || 'new'} // Force remount when switching topics
                             data={content}
                             onChange={setContent}
                             placeholder="Write your notes here... Use the toolbar to format text, add code blocks, lists, and more."

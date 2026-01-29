@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, memo, useCallback } from "react";
 import EditorJS, { OutputData } from "@editorjs/editorjs";
 import Header from "@editorjs/header";
 import List from "@editorjs/list";
@@ -22,20 +22,53 @@ export const RichTextEditor = memo(({ data, onChange, placeholder, readOnly = fa
     const editorRef = useRef<EditorJS | null>(null);
     const holderRef = useRef<HTMLDivElement>(null);
     const isInitialized = useRef(false);
+    const onChangeRef = useRef(onChange);
+    const readOnlyRef = useRef(readOnly);
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Keep onChange ref up to date
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }, [onChange]);
+
+    // Keep readOnly ref up to date
+    useEffect(() => {
+        readOnlyRef.current = readOnly;
+    }, [readOnly]);
+
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, []);
+
+    // Initialize editor once on mount with initial data
     useEffect(() => {
         if (!holderRef.current || isInitialized.current) return;
 
-        // Initialize Editor.js
+        // Initialize Editor.js with current data
         const editor = new EditorJS({
             holder: holderRef.current,
             placeholder: placeholder || "Start writing your notes...",
             data: data,
             readOnly: readOnly,
             onChange: async () => {
-                if (onChange && editorRef.current && !readOnly) {
-                    const outputData = await editorRef.current.save();
-                    onChange(outputData);
+                if (onChangeRef.current && editorRef.current && !readOnlyRef.current) {
+                    // Clear existing timer
+                    if (debounceTimerRef.current) {
+                        clearTimeout(debounceTimerRef.current);
+                    }
+
+                    // Set new timer to debounce the onChange callback
+                    debounceTimerRef.current = setTimeout(async () => {
+                        if (editorRef.current) {
+                            const outputData = await editorRef.current.save();
+                            onChangeRef.current?.(outputData);
+                        }
+                    }, 500); // Wait 500ms after last change
                 }
             },
             tools: {
@@ -111,9 +144,9 @@ export const RichTextEditor = memo(({ data, onChange, placeholder, readOnly = fa
                 isInitialized.current = false;
             }
         };
-    }, []);
+    }, []); // Only run once on mount - key prop handles topic switching
 
-    // Handle readOnly updates
+    // Handle readOnly changes separately using Editor.js API
     useEffect(() => {
         if (editorRef.current && editorRef.current.readOnly && isInitialized.current) {
             editorRef.current.readOnly.toggle(readOnly);
